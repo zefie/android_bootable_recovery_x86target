@@ -49,6 +49,7 @@ static drm_surface *drm_surfaces[2];
 static int current_buffer;
 static bool page_flip_pending;
 
+bool crtc_disabled = true;
 static drmModeCrtc *main_monitor_crtc;
 static drmModeConnector *main_monitor_connector;
 
@@ -62,6 +63,7 @@ static void drm_disable_crtc(int drm_fd, drmModeCrtc *crtc) {
                        NULL,  // connectors
                        0,     // connector_count
                        NULL); // mode
+        crtc_disabled = true;
     }
 }
 
@@ -78,14 +80,13 @@ static void drm_enable_crtc(int drm_fd, drmModeCrtc *crtc,
 
     if (ret)
         printf("drmModeSetCrtc failed ret=%d\n", ret);
+    else
+        crtc_disabled = false;
 }
 
 static void drm_blank(minui_backend* backend __unused, bool blank) {
     if (blank)
         drm_disable_crtc(drm_fd, main_monitor_crtc);
-    else
-        drm_enable_crtc(drm_fd, main_monitor_crtc,
-                        drm_surfaces[current_buffer]);
 }
 
 static void drm_destroy_surface(struct drm_surface *surface) {
@@ -464,8 +465,6 @@ static GRSurface* drm_init(minui_backend* backend __unused) {
 
     current_buffer = 0;
 
-    drm_enable_crtc(drm_fd, main_monitor_crtc, drm_surfaces[1]);
-
     // Initialize event context
     memset(&evctx, 0, sizeof(evctx));
     evctx.version = DRM_EVENT_CONTEXT_VERSION;
@@ -476,6 +475,13 @@ static GRSurface* drm_init(minui_backend* backend __unused) {
 
 static GRSurface* drm_flip(minui_backend* backend __unused) {
     int ret;
+
+    if (crtc_disabled) {
+        drm_enable_crtc(drm_fd, main_monitor_crtc,
+                        drm_surfaces[current_buffer]);
+        current_buffer = 1 - current_buffer;
+        return &(drm_surfaces[current_buffer]->base);
+    }
 
     page_flip_pending = true;
 
