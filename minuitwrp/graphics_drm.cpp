@@ -45,9 +45,10 @@ struct drm_surface {
 };
 
 static drmEventContext evctx;
+static GRSurface *gr_draw;
 static drm_surface *drm_surfaces[2];
 static int current_buffer;
-static bool page_flip_pending;
+static bool page_flip_pending = false;
 
 bool crtc_disabled = true;
 static drmModeCrtc *main_monitor_crtc;
@@ -463,6 +464,28 @@ static GRSurface* drm_init(minui_backend* backend __unused) {
         return NULL;
     }
 
+    // Drawing directly to the surface takes about 5 times longer.
+    // Instead, we will allocate some memory and draw to that, then
+    // memcpy the data into the surface later.
+    gr_draw = (GRSurface*) malloc(sizeof(GRSurface));
+    if (!gr_draw) {
+        perror("failed to allocate gr_draw");
+        close(drm_fd);
+        return NULL;
+    }
+
+    memcpy(gr_draw, drm_surfaces[0], sizeof(GRSurface));
+
+    gr_draw->data = (unsigned char*) calloc(gr_draw->height * gr_draw->row_bytes, 1);
+    if (!gr_draw->data) {
+        perror("failed to allocate in-memory surface");
+        free(gr_draw);
+        drm_destroy_surface(drm_surfaces[0]);
+        drm_destroy_surface(drm_surfaces[1]);
+        close(drm_fd);
+        return NULL;
+    }
+
     current_buffer = 0;
 
     // Initialize event context
@@ -470,17 +493,29 @@ static GRSurface* drm_init(minui_backend* backend __unused) {
     evctx.version = DRM_EVENT_CONTEXT_VERSION;
     evctx.page_flip_handler = drm_handle_page_flip;
 
-    return &(drm_surfaces[0]->base);
+    return gr_draw;
 }
 
 static GRSurface* drm_flip(minui_backend* backend __unused) {
     int ret;
 
+    if (page_flip_pending) {
+        drmHandleEvent(drm_fd, &evctx);
+        if (page_flip_pending) {
+            printf("drmHandleEvent returned without flipping");
+            page_flip_pending = false;
+        }
+    }
+
+    // Copy from the in-memory surface to the DRM surface.
+    memcpy(drm_surfaces[current_buffer]->base.data, gr_draw->data,
+           gr_draw->height * gr_draw->row_bytes);
+
     if (crtc_disabled) {
         drm_enable_crtc(drm_fd, main_monitor_crtc,
                         drm_surfaces[current_buffer]);
         current_buffer = 1 - current_buffer;
-        return &(drm_surfaces[current_buffer]->base);
+        return gr_draw;
     }
 
     page_flip_pending = true;
@@ -493,14 +528,7 @@ static GRSurface* drm_flip(minui_backend* backend __unused) {
         return NULL;
     }
     current_buffer = 1 - current_buffer;
-
-    drmHandleEvent(drm_fd, &evctx);
-    if (page_flip_pending) {
-        printf("drmHandleEvent returned without flipping\n");
-        page_flip_pending = false;
-    }
-
-    return &(drm_surfaces[current_buffer]->base);
+    return gr_draw;
 }
 
 static void drm_exit(minui_backend* backend __unused) {
