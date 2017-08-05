@@ -32,6 +32,10 @@
 #include "graphics.h"
 #include <pixelflinger/pixelflinger.h>
 
+#ifndef __LP64__
+#define mmap mmap64
+#endif
+
 #define ARRAY_SIZE(A) (sizeof(A)/sizeof(*(A)))
 
 struct drm_surface {
