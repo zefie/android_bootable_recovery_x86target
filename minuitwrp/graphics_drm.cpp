@@ -91,7 +91,7 @@ static void drm_blank(minui_backend* backend __unused, bool blank) {
 }
 
 static void drm_destroy_surface(struct drm_surface *surface) {
-    struct drm_gem_close gem_close;
+    struct drm_mode_destroy_dumb destroy_dumb;
     int ret;
 
     if(!surface)
@@ -108,12 +108,12 @@ static void drm_destroy_surface(struct drm_surface *surface) {
     }
 
     if (surface->handle) {
-        memset(&gem_close, 0, sizeof(gem_close));
-        gem_close.handle = surface->handle;
+        memset(&destroy_dumb, 0, sizeof(destroy_dumb));
+        destroy_dumb.handle = surface->handle;
 
-        ret = drmIoctl(drm_fd, DRM_IOCTL_GEM_CLOSE, &gem_close);
+        ret = drmIoctl(drm_fd, DRM_IOCTL_MODE_DESTROY_DUMB, &destroy_dumb);
         if (ret)
-            printf("DRM_IOCTL_GEM_CLOSE failed ret=%d\n", ret);
+            printf("DRM_IOCTL_MODE_DESTROY_DUMB failed ret=%d\n", ret);
     }
 
     free(surface);
