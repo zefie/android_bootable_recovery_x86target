@@ -119,6 +119,7 @@
 #define TW_SIMULATE_ACTIONS         "tw_simulate_actions"
 #define TW_SIMULATE_FAIL            "tw_simulate_fail"
 #define TW_DONT_UNMOUNT_SYSTEM      "tw_dont_unmount_system"
+#define TW_DONT_UNMOUNT_DATA        "tw_dont_unmount_data"
 // #define TW_ALWAYS_RMRF              "tw_always_rmrf"
 
 #define TW_SHOW_DUMLOCK             "tw_show_dumlock"

@@ -628,6 +628,12 @@ void DataManager::SetDefaultValues()
 #else
 	mConst.SetValue(TW_DONT_UNMOUNT_SYSTEM, "0");
 #endif
+#ifdef TW_NEVER_UNMOUNT_DATA
+	printf("TW_NEVER_UNMOUNT_DATA := true\n");
+	mConst.SetValue(TW_DONT_UNMOUNT_DATA, "1");
+#else
+	mConst.SetValue(TW_DONT_UNMOUNT_DATA, "0");
+#endif
 #ifdef TW_NO_USB_STORAGE
 	printf("TW_NO_USB_STORAGE := true\n");
 	mConst.SetValue(TW_HAS_USB_STORAGE, "0");

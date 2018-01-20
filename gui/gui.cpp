@@ -351,15 +351,16 @@ void InputHandler::process_EV_KEY(input_event& ev)
 		}
 	} else {
 		// This is a key release
-		kb->KeyUp(ev.code);
-		key_status = KS_NONE;
-		touch_status = TS_NONE;
 #ifdef TW_USE_KEY_CODE_TOUCH_SYNC
 		if (ev.code == TW_USE_KEY_CODE_TOUCH_SYNC) {
 			LOGEVENT("key code %i key release == touch release %i %i\n", TW_USE_KEY_CODE_TOUCH_SYNC, x, y);
 			PageManager::NotifyTouch(TOUCH_RELEASE, x, y);
+			return;
 		}
 #endif
+		kb->KeyUp(ev.code);
+		key_status = KS_NONE;
+		touch_status = TS_NONE;
 	}
 }
 

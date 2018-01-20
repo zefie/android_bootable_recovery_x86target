@@ -1312,10 +1312,15 @@ bool TWPartition::Mount(bool Display_Error) {
 bool TWPartition::UnMount(bool Display_Error) {
 	if (Is_Mounted()) {
 		int never_unmount_system;
+		int never_unmount_data;
 
 		DataManager::GetValue(TW_DONT_UNMOUNT_SYSTEM, never_unmount_system);
 		if (never_unmount_system == 1 && Mount_Point == "/system")
 			return true; // Never unmount system if you're not supposed to unmount it
+
+		DataManager::GetValue(TW_DONT_UNMOUNT_DATA, never_unmount_data);
+		if (never_unmount_data == 1 && Mount_Point == "/data")
+			return true; // Never unmount data if you're not supposed to unmount it
 
 		if (Is_Storage && MTP_Storage_ID > 0)
 			PartitionManager.Remove_MTP_Storage(MTP_Storage_ID);
